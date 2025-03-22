@@ -24,7 +24,10 @@ struct Request {
                       "Accept-Encoding: identity\r\n"
                       "Connection: close\r\n\r\n";
     request = request_stream.str();
-    resolver.async_resolve(this->host, "http", [this](boost::system::error_code ec, const ResolveResult& results) {
+  }
+
+  void resolve_request() {
+    resolver.async_resolve(host, "http", [this](boost::system::error_code ec, const ResolveResult& results) {
       resolution_handler(ec, results);
     });
   }
@@ -82,13 +85,17 @@ struct Request {
 };
 
 int main() {
-  size_t n_requests{ 1 }, n_threads{ 1 };
+  size_t n_requests{ 2 }, n_threads{ 2 };
   boost::asio::io_context io_context{ static_cast<int>(n_threads) };
 
   std::vector<Request> requests;
   std::generate_n(std::back_inserter(requests), n_requests, [&io_context] {
-    return Request{ io_context, "www.arcyber.army.mil" };
+    return Request{ io_context, "example.com" };
   });
+
+  for(size_t i=0; i!=n_requests; ++i) {
+    requests[i].resolve_request();
+  }
 
   std::vector<std::future<void>> futures;
   std::generate_n(std::back_inserter(futures), n_threads, [&io_context] {
